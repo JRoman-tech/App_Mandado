@@ -1,29 +1,23 @@
 import { useMemo, useState } from "react";
 import { recipes } from "./data/recipes";
+import WeeklyMenu from "./components/WeeklyMenu";
+import ExtraItems from "./components/ExtraItems";
+import GroceryList from "./components/GroceryList";
+import RecipeCard from "./components/RecipeCard";
 import "./index.css";
 
-const days = [
-  "Lunes",
-  "Martes",
-  "Miércoles",
-  "Jueves",
-  "Viernes",
-  "Sábado",
-  "Domingo"
-];
+const INITIAL_MEAL_PLAN = {
+  Lunes: "",
+  Martes: "",
+  Miércoles: "",
+  Jueves: "",
+  Viernes: "",
+  Sábado: "",
+  Domingo: ""
+};
 
 function App() {
-  const [mealPlan, setMealPlan] = useState({
-    Lunes: "",
-    Martes: "",
-    Miércoles: "",
-    Jueves: "",
-    Viernes: "",
-    Sábado: "",
-    Domingo: ""
-  });
-
-  const [extraItem, setExtraItem] = useState("");
+  const [mealPlan, setMealPlan] = useState(INITIAL_MEAL_PLAN);
   const [extraItems, setExtraItems] = useState([]);
 
   const handleMealChange = (day, value) => {
@@ -33,14 +27,20 @@ function App() {
     }));
   };
 
-  const addExtraItem = () => {
-    if (!extraItem.trim()) return;
+  const handleClearAll = () => {
+    setMealPlan(INITIAL_MEAL_PLAN);
+    setExtraItems([]);
+  };
 
+  const handleAddExtraItem = (itemName) => {
     setExtraItems((prev) => [
       ...prev,
-      { item: extraItem, qty: 1, unit: "pz", category: "Extras" }
+      { item: itemName, qty: 1, unit: "pz", category: "Extras" }
     ]);
-    setExtraItem("");
+  };
+
+  const handleRemoveExtraItem = (index) => {
+    setExtraItems((prev) => prev.filter((_, i) => i !== index));
   };
 
   const groceryList = useMemo(() => {
@@ -83,68 +83,44 @@ function App() {
     return grouped;
   }, [mealPlan, extraItems]);
 
+  const selectedRecipesCount = Object.values(mealPlan).filter(Boolean).length;
+
   return (
     <div className="app">
       <header className="header">
-        <h1>Planeador semanal de mercado</h1>
-        <p>Selecciona lo que cocinarás y genera tu lista automáticamente</p>
+        <h1>Planeador Semanal de Mercado</h1>
+        <p>Organiza tu menú semanal y genera tu lista de compras automáticamente</p>
+        <div className="stats">
+          <span className="stat-badge">{selectedRecipesCount} platillos seleccionados</span>
+          <span className="stat-badge">
+            {Object.values(groceryList).reduce((acc, items) => acc + items.length, 0)} productos en la lista
+          </span>
+        </div>
       </header>
 
       <main className="container">
-        <section className="card">
-          <h2>Menú semanal</h2>
-          <div className="days-grid">
-            {days.map((day) => (
-              <div key={day} className="day-row">
-                <label>{day}</label>
-                <select
-                  value={mealPlan[day]}
-                  onChange={(e) => handleMealChange(day, e.target.value)}
-                >
-                  <option value="">Selecciona un platillo</option>
-                  {recipes.map((recipe) => (
-                    <option key={recipe.name} value={recipe.name}>
-                      {recipe.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <section className="card">
-          <h2>Agregar extras</h2>
-          <div className="extra-row">
-            <input
-              type="text"
-              placeholder="Ej. jabón, servilletas, refresco"
-              value={extraItem}
-              onChange={(e) => setExtraItem(e.target.value)}
+        <div className="main-grid">
+          <div className="left-column">
+            <WeeklyMenu
+              mealPlan={mealPlan}
+              recipes={recipes}
+              onMealChange={handleMealChange}
+              onClearAll={handleClearAll}
             />
-            <button onClick={addExtraItem}>Agregar</button>
-          </div>
-        </section>
 
-        <section className="card">
-          <h2>Lista del mercado</h2>
-          {Object.keys(groceryList).length === 0 ? (
-            <p>No hay productos todavía.</p>
-          ) : (
-            Object.entries(groceryList).map(([category, items]) => (
-              <div key={category} className="category-block">
-                <h3>{category}</h3>
-                <ul>
-                  {items.map((item, index) => (
-                    <li key={index}>
-                      {item.item} - {item.qty} {item.unit}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))
-          )}
-        </section>
+            <ExtraItems
+              extraItems={extraItems}
+              onAddItem={handleAddExtraItem}
+              onRemoveItem={handleRemoveExtraItem}
+            />
+          </div>
+
+          <div className="right-column">
+            <RecipeCard recipes={recipes} />
+          </div>
+        </div>
+
+        <GroceryList groceryList={groceryList} />
       </main>
     </div>
   );
